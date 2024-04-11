@@ -1,0 +1,7 @@
+.idea
+.env-prod
+
+#docker
+.dockerignore
+Dockerfile
+docker-compose.yml

@@ -52,30 +52,39 @@ func (a Auth) Login(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("req:", req)
-
 	if req.Username == "" || req.Password == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "username or password is empty"})
 		return
 	}
 
-	// connect with user entity
-
-	// temporary fake token generated
-	token := utils.JwtGenerateToken(utils.JwtStandardOptions{
-		IdentityKey: "static_user",
-		SecretValue: "static_user_fake_id",
-		MetaData: map[string]string{
-			"ip": ctx.ClientIP(),
-		},
-		NoExpire: true,
+	login := a.Endpoints.Auth.Login(ctx, authendpoint.LoginRequest{
+		Username: req.Username,
+		Password: req.Password,
 	})
 
-	ctx.SetSameSite(http.SameSiteLaxMode)
-	ctx.SetCookie(authorization.CookieKeyName, token, authorization.CookieKeyMaxAge, "/", "", authorization.CookieKeySecure, authorization.CookieKeyHttpOnly)
+	if login.User.Id > 0 {
+		token := utils.JwtGenerateToken(utils.JwtStandardOptions{
+			IdentityKey: "user_details",
+			SecretValue: fmt.Sprintf("%d", login.User.Id),
+			MetaData: map[string]string{
+				"email":  login.User.Email,
+				"name":   login.User.Name,
+				"status": string(login.User.Status),
+			},
+			NoExpire: true,
+		})
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"token": token,
+		ctx.SetSameSite(http.SameSiteLaxMode)
+		ctx.SetCookie(authorization.CookieKeyName, token, authorization.CookieKeyMaxAge, "/", "", authorization.CookieKeySecure, authorization.CookieKeyHttpOnly)
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"token": token,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusUnauthorized, gin.H{
+		"error": "invalid username or password",
 	})
 }
 
@@ -99,7 +108,7 @@ func (a Auth) Register(ctx *gin.Context) {
 	resp := a.Endpoints.Auth.Register(ctx, authendpoint.RegisterRequest{
 		Name:     req.Name,
 		Email:    req.Email,
-		Password: req.Password,
+		Password: utils.GenerateSha1(req.Password),
 		ClientIP: ctx.ClientIP(),
 	})
 

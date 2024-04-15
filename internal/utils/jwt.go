@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"github.com/golang-jwt/jwt"
 	"time"
 )
@@ -59,4 +61,8 @@ func JwtParseToken(token string) *JwtStandardClaims {
 		}
 	}
 	return nil
+}
+
+func GenerateSha1(str string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(str)))
 }

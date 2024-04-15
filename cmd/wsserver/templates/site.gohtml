@@ -1,0 +1,99 @@
+<html lang="en">
+<h1>{{ .title }}</h1>
+
+<form id="newRoom" onsubmit="createRoom(event)">
+    <input readonly id="roomId" placeholder="Room Id"/>
+    <input readonly id="clientId" placeholder="Client Id"/>
+    <input type="text" required id="roomName" placeholder="Room Name"/>
+    <input type="text" required id="clientName" placeholder="Your Name"/>
+    <button>Connect Ws</button>
+</form>
+
+<br/>
+<br/>
+<p id="roomUrl"></p>
+<br/>
+<br/>
+<ul id="chat"></ul>
+<input type="text" id="message"/>
+
+
+<script type="text/javascript">
+    const uniqueStr = () => Math.random().toString(36).substring(2) // new Date().getTime().toString(36)
+    const query = new URLSearchParams(location.search)
+
+    var chatElm = document.getElementById("chat")
+    var roomIdElm = document.getElementById("roomId")
+    var clientIdElm = document.getElementById("clientId")
+    var roomNameElm = document.getElementById("roomName")
+    var clientNameElm = document.getElementById("clientName")
+
+    roomIdElm.value = query.has("roomId") && query.get("roomId") ? query.get("roomId") : uniqueStr()
+    roomNameElm.value = query.has("roomName") && query.get("roomName") ? query.get("roomName") : ""
+    clientIdElm.value = uniqueStr()
+
+    const createRoom = (e) => {
+        e.preventDefault()
+        connectWS()
+    }
+
+
+
+
+    var WS;
+
+
+    function connectWS() {
+        const roomId = roomIdElm.value
+        const clientId = clientIdElm.value
+        const roomName = roomNameElm.value
+        const clientName = clientNameElm.value
+
+        if (WS !== undefined) {
+            WS.close()
+        }
+
+        WS = new WebSocket(`ws://localhost:2121/api/v1/ws/websocket/${roomId}?client_id=${clientId}&room_name=${roomName}&client_name=${clientName}`);
+
+        WS.onmessage = function(msg) {
+
+            try {
+                const res = JSON.parse(msg.data)
+                const elm = document.createElement("li")
+                elm.innerText = res.data + " --" + res.sender.name
+                chatElm.append(elm)
+            } catch (e) {
+                console.error("e--->", e)
+            }
+        }
+
+        WS.onopen = function(evt) {
+            console.log("onopen.");
+
+            document.getElementById("roomUrl").innerText = `${window.location.href}?roomId=${roomId}&roomName=${roomName}`
+        };
+
+        WS.onclose = function(evt) {
+            console.log("onclose.");
+
+        };
+
+        WS.onerror = function(evt) {
+            console.log("Error!");
+        };
+    }
+
+    let message = document.getElementById("message")
+    message.onkeyup = function (e) {
+        if (e.key === "Enter") {
+            WS.send(JSON.stringify({
+                event: "chat::message",
+                data: this.value,
+                clientId: clientIdElm.value,
+                clientName: clientNameElm.value
+            }))
+            this.value = ""
+        }
+    }
+</script>
+</html>

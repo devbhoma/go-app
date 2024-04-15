@@ -30,13 +30,17 @@ func Boot(cli *cli.Base, cnf appconfig.Config) {
 			dbStore := store.NewStore(cnf)
 
 			s := &Server{
-				Config: cnf,
-				Reader: httpserver.NewServer(cnf.Env),
+				Config:        cnf,
+				Reader:        httpserver.NewServer(cnf.Env),
+				Authorization: authorization.New(cnf, dbStore),
 			}
 
 			engine := s.Reader.GetEngine()
+			engine.LoadHTMLGlob("./cmd/wsserver/templates/*")
 
-			socketroutes.DefineRoutes(cnf, dbStore, engine.Group("api/v1"), s.Authorization.Authenticate())
+			socketroutes.DefineEngine(cnf, dbStore, engine, s.Authorization.Authenticate())
+
+			socketroutes.DefineRoutesV1(cnf, dbStore, engine.Group("api/v1"), s.Authorization.Authenticate())
 
 			err := s.start()
 			if err != nil {
@@ -49,5 +53,6 @@ func Boot(cli *cli.Base, cnf appconfig.Config) {
 }
 
 func (s *Server) start() error {
+	s.Config.Port = "2121" // tmp: statics port
 	return s.Reader.Run(s.Config.Port)
 }

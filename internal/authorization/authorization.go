@@ -68,7 +68,11 @@ func (a Base) ValidateCookieToken(ctx *gin.Context) bool {
 	}
 
 	parse := utils.JwtParseToken(token)
-
-	ctx.Set("SECRET_KEY", parse.SecretValue)
-	return true
+	if parse.SecretValue != "" {
+		// db data validate
+		ctx.Set("SECRET_KEY", parse.IdentityKey)
+		ctx.Set("SECRET_VALUE", parse.SecretValue)
+		return true
+	}
+	return false
 }

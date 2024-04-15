@@ -39,7 +39,11 @@ func (s *Site) Ping(ctx *gin.Context) {
 }
 
 func (s *Site) User(ctx *gin.Context) {
+
+	val, _ := ctx.Get("SECRET_VALUE")
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"user": true,
+		"user":   true,
+		"secret": val,
 	})
 }

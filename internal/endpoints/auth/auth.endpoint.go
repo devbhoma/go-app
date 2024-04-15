@@ -6,10 +6,12 @@ import (
 	dbpostgres "goapp/internal/database/postgres"
 	"goapp/internal/store"
 	usersentity "goapp/internal/store/entities/users"
+	"goapp/internal/utils"
 )
 
 type Endpoint interface {
 	Register(ctx context.Context, req RegisterRequest) RegisterResponse
+	Login(ctx context.Context, req LoginRequest) LoginResponse
 }
 
 type Auth struct {
@@ -37,6 +39,45 @@ type RegisterResponse struct {
 	Message string `json:"message"`
 }
 
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	User    usersentity.UserModels
+}
+
+func (b Auth) Login(ctx context.Context, req LoginRequest) LoginResponse {
+
+	usr, err := b.Store.Postgres.User.Get(ctx, usersentity.UserOptions{
+		Email:    req.Username,
+		Password: utils.GenerateSha1(req.Password),
+	})
+
+	if err != nil {
+		return LoginResponse{
+			Status:  false,
+			Message: err.Error(),
+		}
+	}
+
+	if usr.Id > 0 {
+		return LoginResponse{
+			Status:  true,
+			Message: "User login successfully",
+			User:    usr,
+		}
+	}
+
+	return LoginResponse{
+		Status:  false,
+		Message: "credentials are invalid",
+	}
+}
+
 func (b Auth) Register(ctx context.Context, req RegisterRequest) RegisterResponse {
 
 	metadata, _ := dbpostgres.ScanRawDataJSON(map[string]interface{}{
@@ -47,7 +88,7 @@ func (b Auth) Register(ctx context.Context, req RegisterRequest) RegisterRespons
 	usr, err := b.Store.Postgres.User.Insert(ctx, usersentity.UserModels{
 		Name:     req.Name,
 		Email:    req.Email,
-		Password: req.Password,
+		Password: utils.GenerateSha1(req.Password),
 		Status:   usersentity.UserStatusPending,
 		MetaData: metadata,
 	})
@@ -59,7 +100,7 @@ func (b Auth) Register(ctx context.Context, req RegisterRequest) RegisterRespons
 	}
 	return RegisterResponse{
 		Status:  true,
-		Message: "User created successfully",
 		UserId:  usr.Id,
+		Message: "You have successfully registered",
 	}
 }

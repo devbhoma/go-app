@@ -21,8 +21,8 @@ func run() error {
 	mainCLI := cli.New()
 	cnf := appconfig.Get()
 
-	coreadmin.Boot(mainCLI, cnf) // main server
-	apiserver.Boot(mainCLI, cnf) // main server
+	coreadmin.Boot(mainCLI, cnf)
+	apiserver.Boot(mainCLI, cnf) // api server
 	wsserver.Boot(mainCLI, cnf)  // socket server
 
 	return mainCLI.Execute()

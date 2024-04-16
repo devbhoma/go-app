@@ -77,6 +77,7 @@ func (r *Room) Read(client *Client) {
 				Sender: Sender{
 					Id:   client.Id,
 					Name: client.Name,
+					Type: "client",
 				},
 			})
 		}
@@ -105,6 +106,7 @@ func (r *Room) RemoveClient(client *Client) {
 		Sender: Sender{
 			Id:   client.Id,
 			Name: client.Name,
+			Type: "system",
 		},
 	})
 

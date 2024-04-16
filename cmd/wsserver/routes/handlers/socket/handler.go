@@ -8,6 +8,7 @@ import (
 	"goapp/internal/httpserver"
 	"goapp/internal/store"
 	"net/http"
+	"time"
 )
 
 type Base struct {
@@ -76,36 +77,34 @@ func (b *Base) WebSocket(ctx *gin.Context) {
 		isNewClient = true
 	}
 
-	if isNewRoom {
-		room.Emit(Message{
-			Event:      "chat:message::event",
-			Data:       fmt.Sprintf("%s room created", roomName),
-			ClientId:   clientId,
-			ClientName: clientName,
-			Sender: Sender{
-				Id:   clientId,
-				Name: clientName,
-			},
-		})
-	}
+	go func() {
+		time.Sleep(time.Second * 1)
+		if isNewRoom {
+			room.Emit(Message{
+				Event:      "chat:message",
+				Data:       fmt.Sprintf("%s room created", roomName),
+				ClientId:   clientId,
+				ClientName: clientName,
+				Sender: Sender{
+					Id:   clientId,
+					Name: clientName,
+					Type: "system",
+				},
+			})
+		}
 
-	if isNewClient {
-		room.EmitAll(Message{
-			Event:      "chat:message::event",
-			Data:       fmt.Sprintf("%s joined", clientName),
-			ClientId:   clientId,
-			ClientName: clientName,
-			Sender: Sender{
-				Id:   clientId,
-				Name: clientName,
-			},
-		})
-	}
-
-	defer func() {
-		room.RemoveClient(client)
-		if err := con.Close(); err != nil {
-			fmt.Println("Error while closing socket, err:", err)
+		if isNewClient {
+			room.EmitAll(Message{
+				Event:      "chat:message",
+				Data:       fmt.Sprintf("%s joined", clientName),
+				ClientId:   clientId,
+				ClientName: clientName,
+				Sender: Sender{
+					Id:   clientId,
+					Name: clientName,
+					Type: "system",
+				},
+			})
 		}
 	}()
 

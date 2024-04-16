@@ -1,27 +1,127 @@
 <html lang="en">
-<h1>{{ .title }}</h1>
+<head>
+    <title>Chat Application</title>
 
-<form id="newRoom" onsubmit="createRoom(event)">
-    <input readonly id="roomId" placeholder="Room Id"/>
-    <input readonly id="clientId" placeholder="Client Id"/>
-    <input type="text" required id="roomName" placeholder="Room Name"/>
-    <input type="text" required id="clientName" placeholder="Your Name"/>
-    <button>Connect Ws</button>
-</form>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+            'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+            sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
-<br/>
-<br/>
-<p id="roomUrl"></p>
-<br/>
-<br/>
-<ul id="chat"></ul>
-<input type="text" id="message"/>
+        .container {
+            width: 500px;
+            margin: 0 auto;
+        }
+
+        form label {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        ul#chat {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 350px;
+            overflow: auto;
+            border: 1px solid #c1c1c1;
+            padding: 10px;
+            margin: 0;
+            border-radius: 4px;
+            align-items: center;
+        }
+
+        ul#chat li {
+            display: flex;
+            flex-direction: column;
+            background: #c1c1c1;
+            border-radius: 4px;
+            width: fit-content;
+            padding: 5px 10px;
+        }
+        li.right {
+            margin-left: auto;
+        }
+        li.left {
+            margin-right: auto;
+        }
+        li.system {
+            background: none !important;
+            margin: 0 auto;
+            color: #797985;
+        }
+        li .msg-text {
+            font-size: 15px;
+        }
+
+        li .sender {
+            font-size: 12px;
+            color: blue;
+            text-align: end;
+        }
+
+        #message {
+            border: 1px solid #c1c1c1;
+            padding: 10px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<div class="container">
+    <h1>{{ .title }}</h1>
+
+    <form id="room-form" onsubmit="createRoom(event)" style="display: flex;flex-direction: column;gap: 15px;">
+        <label>
+            Room ID
+            <input readonly id="roomId" placeholder="Room Id"/>
+        </label>
+        <label>
+            Client ID
+            <input readonly id="clientId" placeholder="Client Id"/>
+        </label>
+        <label>
+            Room Name
+            <input type="text" required id="roomName" placeholder="Room Name"/>
+        </label>
+        <label>
+            Your Name
+            <input type="text" required id="clientName" placeholder="Your Name"/>
+        </label>
+
+        <label>
+            <button>Connect Ws</button>
+        </label>
+    </form>
+
+    <div id="chat-container" style="display: none">
+        <br/>
+        <code id="roomJoinUrl"></code>
+        <br/>
+        <br/>
+        <ul id="chat"></ul>
+        <br/>
+        <input type="text" placeholder="Type message here.." id="message"/>
+    </div>
+</div>
+
 
 
 <script type="text/javascript">
-    const uniqueStr = () => Math.random().toString(36).substring(2) // new Date().getTime().toString(36)
+
+    window.onbeforeunload = function() {
+        return "The chat will be closed, and you might lose chat data. Are you sure you want to exit this page?";
+    };
+
+    const uniqueStr = () => Math.random().toString(36).substring(2)
     const query = new URLSearchParams(location.search)
 
+    var roomFormElm = document.getElementById("room-form")
+    var chatContainerElm = document.getElementById("chat-container")
     var chatElm = document.getElementById("chat")
     var roomIdElm = document.getElementById("roomId")
     var clientIdElm = document.getElementById("clientId")
@@ -36,8 +136,6 @@
         e.preventDefault()
         connectWS()
     }
-
-
 
 
     var WS;
@@ -55,31 +153,47 @@
 
         WS = new WebSocket(`ws://localhost:2121/api/v1/ws/websocket/${roomId}?client_id=${clientId}&room_name=${roomName}&client_name=${clientName}`);
 
-        WS.onmessage = function(msg) {
+        WS.onmessage = function(response) {
 
             try {
-                const res = JSON.parse(msg.data)
+                const message = JSON.parse(response.data)
                 const elm = document.createElement("li")
-                elm.innerText = res.data + " --" + res.sender.name
+                elm.setAttribute("class", `${message.sender.id === clientId ? "right": "left"} ${message.sender.type}`)
+
+                const txt = document.createElement("span")
+                txt.innerText = message.data
+                txt.setAttribute("class", "msg-text")
+                elm.append(txt)
+
+                if (message.sender.type !== "system") {
+                    const sender = document.createElement("span")
+                    sender.setAttribute("class", "sender")
+                    sender.innerText = message.sender.name
+                    elm.append(sender)
+                }
+
                 chatElm.append(elm)
+
+                chatElm.scrollTop = chatElm.scrollHeight + 100
             } catch (e) {
                 console.error("e--->", e)
             }
         }
 
         WS.onopen = function(evt) {
-            console.log("onopen.");
-
-            document.getElementById("roomUrl").innerText = `${window.location.href}?roomId=${roomId}&roomName=${roomName}`
+            console.log("WS--onopen");
+            chatContainerElm.style.display = "unset"
+            roomFormElm.style.display = "none"
+            document.getElementById("roomJoinUrl").innerText = `${window.location.origin}${window.location.pathname}?roomId=${roomId}&roomName=${roomName}`
         };
 
         WS.onclose = function(evt) {
-            console.log("onclose.");
+            console.log("WS--onclose");
 
         };
 
         WS.onerror = function(evt) {
-            console.log("Error!");
+            console.log("WS--Error!");
         };
     }
 
@@ -89,8 +203,6 @@
             WS.send(JSON.stringify({
                 event: "chat::message",
                 data: this.value,
-                clientId: clientIdElm.value,
-                clientName: clientNameElm.value
             }))
             this.value = ""
         }

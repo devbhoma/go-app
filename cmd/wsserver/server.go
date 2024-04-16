@@ -53,6 +53,5 @@ func Boot(cli *cli.Base, cnf appconfig.Config) {
 }
 
 func (s *Server) start() error {
-	s.Config.Port = "2121" // tmp: statics port
 	return s.Reader.Run(s.Config.Port)
 }

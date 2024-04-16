@@ -13,7 +13,7 @@ type Base struct {
 }
 
 type Handler interface {
-	Page(c *gin.Context)
+	Chat(c *gin.Context)
 }
 
 func NewSite(cnf appconfig.Config, str *store.Base, router *gin.RouterGroup) Handler {
@@ -22,20 +22,13 @@ func NewSite(cnf appconfig.Config, str *store.Base, router *gin.RouterGroup) Han
 		Store:  *str,
 	}
 
-	router.GET("/", base.Page)
-	router.GET("/chat", base.Chat)
+	router.GET("/", base.Chat)
 
 	return base
 }
 
-func (base *Base) Page(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"title": "WS!",
-	})
-}
-
 func (base *Base) Chat(c *gin.Context) {
-	c.HTML(http.StatusOK, "site.gohtml", gin.H{
+	c.HTML(http.StatusOK, "chat.gohtml", gin.H{
 		"title": "Ws-Chat!",
 	})
 }

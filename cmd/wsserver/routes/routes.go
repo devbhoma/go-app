@@ -12,12 +12,6 @@ func DefineEngine(cnf appconfig.Config, dbStore *store.Base, engine *gin.Engine,
 
 	handlers.NewSite(cnf, dbStore, engine.Group("/"))
 
-	//engine.GET("/", func(ctx *gin.Context) {
-	//	ctx.HTML(http.StatusOK, "index.tmpl", gin.H{
-	//		"title": "Hello World",
-	//		"time":  time.Now().Format(time.RFC850),
-	//	})
-	//})
 }
 
 func DefineRoutesV1(cnf appconfig.Config, str *store.Base, v1 *gin.RouterGroup, authHandler gin.HandlerFunc) {

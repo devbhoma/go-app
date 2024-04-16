@@ -21,8 +21,11 @@ type Config struct {
 }
 
 func Get() Config {
-
-	err := godotenv.Load()
+	filename := ".env"
+	if len(os.Args) > 0 && os.Args[1] == "socket" {
+		filename = ".env-socket"
+	}
+	err := godotenv.Load(filename)
 	if err != nil {
 		panic("Error loading .env file")
 	}
